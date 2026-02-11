@@ -3,15 +3,16 @@ import datetime
 
 app = Flask(__name__)
 
-# قاعدة بيانات تجريبية (يمكنك نقلها لملف JSON لاحقاً)
+# قاعدة بيانات المفاتيح (أضف مفاتيحك هنا)
+# المفتح يكون عبارة عن SHA256 Hash للكود الذي يعطى للمستخدم
 LICENSE_KEYS = {
-    "8d61e185a95398438e4433984feb90ebe774b1a5b32dcff75479037831462a6f": { # هاش Atheer
+    "8d61e185a95398438e4433984feb90ebe774b1a5b32dcff75479037831462a6f": {
         "name": "Atheer",
         "expires": "2026-05-01",
         "limit": 2000,
         "hwids": []
     },
-    "4a193ebe299bcd9a10f8a0d70126b4865f045bf274aee320f48666d672b058fd": { # هاش User_2
+    "4a193ebe299bcd9a10f8a0d70126b4865f045bf274aee320f48666d672b058fd": {
         "name": "User_2",
         "expires": "2026-03-15",
         "limit": 1000,
@@ -22,7 +23,7 @@ LICENSE_KEYS = {
 @app.route("/check", methods=["POST"])
 def check_license():
     data = request.get_json(force=True)
-    key = data.get("key") # الهاش القادم من الأداة
+    key = data.get("key") # الكود مشفر
     hwid = data.get("hwid")
 
     if key not in LICENSE_KEYS:
@@ -30,18 +31,17 @@ def check_license():
 
     lic = LICENSE_KEYS[key]
     
-    # 1. فحص التاريخ
+    # فحص التاريخ
     exp_date = datetime.datetime.fromisoformat(lic["expires"])
     if datetime.datetime.now() > exp_date:
         return jsonify({"status": "fail", "reason": "expired"}), 403
 
-    # 2. فحص الأجهزة (إذا كان الكود خاص - لمت قليل)
-    if lic["limit"] < 100:
-        if hwid not in lic["hwids"]:
-            if len(lic["hwids"]) < lic["limit"]:
-                lic["hwids"].append(hwid) # تسجيل الجهاز تلقائياً
-            else:
-                return jsonify({"status": "fail", "reason": "limit_reached"}), 403
+    # فحص الأجهزة (الـ HWID)
+    if hwid not in lic["hwids"]:
+        if len(lic["hwids"]) < lic["limit"]:
+            lic["hwids"].append(hwid) # تسجيل الجهاز الجديد تلقائياً
+        else:
+            return jsonify({"status": "fail", "reason": "limit_reached"}), 403
 
     return jsonify({
         "status": "ok", 
