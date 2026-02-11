@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 # ضع هاش الأكواد هنا (SHA256)
 LICENSE_KEYS = {
-    "cdaa69990969ddc9d9c23411fc08f0b7fb1788e47d1828a89dd851c983412856": {
+    "9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0": {
         "name": "Atheer",
         "expires": "2026-02-11T00:00:00",
         "limit": 2000,
