@@ -9,25 +9,18 @@ app = Flask(__name__)
 DB_FILE = "database.json"
 
 def load_db():
-    # الأكواد الجديدة التي تريد فرضها (سيتم مسح بياناتها القديمة وتحديثها)
     required_keys = {
+        # مفتاح 1234
         "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4": {
-            "name": "Ali Khalaf (1234)",
-            "expires": "2026-12-31T23:59:59",
-            "limit": 10000,
-            "hwids": [] # تصفير الأجهزة المسجلة سابقاً
+            "name": "Ali Khalaf", "expires": "2026-12-31T23:59:59", "limit": 10000, "hwids": []
         },
+        # مفتاح 0000
         "df7e70e5021544af483d1c28ef6169b1d227b3093200722a27e7cc1423405392": {
-            "name": "New User (0000)",
-            "expires": "2026-12-31T23:59:59",
-            "limit": 1000,
-            "hwids": []
+            "name": "User_0000", "expires": "2026-12-31T23:59:59", "limit": 10000, "hwids": []
         },
+        # مفتاح TEST-FREE-555 (تأكد من كتابته كابيتال في الأداة)
         "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8": {
-            "name": "Guest User (TEST)",
-            "expires": "2026-12-31T23:59:59",
-            "limit": 5000,
-            "hwids": []
+            "name": "Guest_User", "expires": "2026-12-31T23:59:59", "limit": 10000, "hwids": []
         }
     }
 
@@ -39,6 +32,12 @@ def load_db():
             except:
                 db = {}
 
+    # تحديث الأكواد الثلاثة ومسح الـ HWIDs القديمة لها لتعمل فوراً
+    for k, v in required_keys.items():
+        db[k] = v 
+    
+    save_db(db)
+    return db
     # استبدال بيانات الأكواد القديمة بالبيانات الجديدة (Update/Overwrite)
     for k, v in required_keys.items():
         db[k] = v 
