@@ -13,8 +13,8 @@ def load_db():
     if not os.path.exists(DB_FILE):
         # هنا تضيف كل المفاتيح التي تريدها (أضفت لك 3 أمثلة)
         initial_db = {
-            # مفتاح 1: VIP-Atheer-2025
-            "f9485746352b21c43d546271a5398438e4433984feb90ebe774b1a5b32dcff75": {
+            # مفتاح 1: 1234
+            "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4": {
                 "name": "Ali Khalaf",
                 "expires": "2026-12-31T23:59:59",
                 "limit": 10,
