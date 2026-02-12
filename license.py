@@ -24,14 +24,14 @@ def load_db():
             "df7e70e5021544af483d1c28ef6169b1d227b3093200722a27e7cc1423405392": {
                 "name": "new-user",
                 "expires": "2026-12-31T23:59:59",
-                "limit": 1,
+                "limit": 1000,
                 "hwids": []
             },
             # مفتاح 3: TEST-FREE-555
             "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8": {
                 "name": "Guest User",
                 "expires": "2026-02-28T23:59:59",
-                "limit": 5, # يسمح لـ 5 أجهزة مختلفة
+                "limit": 5000, # يسمح لـ 5 أجهزة مختلفة
                 "hwids": []
             }
         }
