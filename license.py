@@ -7,16 +7,11 @@ def check_license():
     data = request.get_json()
     user_hash = data.get("key", "No Key")
     
-    # هذه الرسالة ستظهر في شاشة السيرفر السوداء (Logs)
-    print("\n" + "="*50)
-    print(f"RECEIVED HASH: {user_hash}")
-    print("="*50 + "\n")
-    
-    # سنقوم بجعل السيرفر يوافق على أي كود مؤقتاً لكي لا تتوقف الأداة
+    # سنرسل الهاش كأنه "اسم المستخدم" لكي تراه في الأداة
     return jsonify({
         "status": "ok", 
         "expires": "2026-12-31T23:59:59", 
-        "user": "Scanner Mode"
+        "user": f"HASH IS: {user_hash}"
     }), 200
 
 if __name__ == "__main__":
