@@ -6,68 +6,76 @@ import os
 app = Flask(__name__)
 DB_FILE = "database.json"
 
-# هذه هي "القائمة الذهبية" - السيرفر سيعترف بهذه الأكواد فقط
-KEYS_DATA = {
-    "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4": {
-        "name": "Ali Khalaf (1234)", "expires": "2026-12-31T23:59:59", "limit": 10000
+# قائمة الأكواد مع تخصيص الوقت وعدد الأجهزة لكل واحد
+LICENSES = [
+    {
+        "key": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", 
+        "name": "Ali Khalaf (1234)",
+        "expires": "2026-05-20T23:59:59",  # ينتهي في شهر 5
+        "limit": 5                         # مسموح لـ 5 أجهزة فقط
     },
-    "df7e70e5021544af483d1c28ef6169b1d227b3093200722a27e7cc1423405392": {
-        "name": "User (0000)", "expires": "2026-12-31T23:59:59", "limit": 10000
+    {
+        "key": "df7e70e5021544af483d1c28ef6169b1d227b3093200722a27e7cc1423405392", 
+        "name": "User (0000)",
+        "expires": "2026-12-31T23:59:59",  # ينتهي نهاية السنة
+        "limit": 10000                     # عدد أجهزة مفتوح تقريباً
     },
-    "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8": {
-        "name": "Guest (TEST)", "expires": "2026-12-31T23:59:59", "limit": 10000
+    {
+        "key": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", 
+        "name": "Guest (TEST)",
+        "expires": "2026-02-15T12:00:00",  # ينتهي بعد يومين (تجريبي)
+        "limit": 1                         # جهاز واحد فقط
     }
-}
+]
 
-def get_hwids_db():
+def get_hwid_file():
     if os.path.exists(DB_FILE):
         try:
-            with open(DB_FILE, "r") as f:
-                return json.load(f)
+            with open(DB_FILE, "r") as f: return json.load(f)
         except: return {}
     return {}
-
-def save_hwids_db(db):
-    with open(DB_FILE, "w") as f:
-        json.dump(db, f, indent=4)
 
 @app.route("/check", methods=["POST"])
 def check_license():
     data = request.get_json()
     if not data or "key" not in data:
-        return jsonify({"status": "fail", "reason": "no_data"}), 400
+        return jsonify({"status": "fail"}), 400
         
     user_hash = data.get("key")
     user_hwid = data.get("hwid", "unknown")
     
-    # الفحص المباشر من KEYS_DATA وليس من الملف
-    if user_hash in KEYS_DATA:
-        lic_info = KEYS_DATA[user_hash]
-        
-        # 1. فحص التاريخ
-        expiry = datetime.datetime.strptime(lic_info["expires"], "%Y-%m-%dT%H:%M:%S")
-        if datetime.datetime.now() > expiry:
+    # البحث عن الكود داخل المصفوفة
+    found_license = None
+    for lic in LICENSES:
+        if lic["key"] == user_hash:
+            found_license = lic
+            break
+            
+    if found_license:
+        # 1. فحص التاريخ الخاص بهذا الكود تحديداً
+        expiry_date = datetime.datetime.strptime(found_license["expires"], "%Y-%m-%dT%H:%M:%S")
+        if datetime.datetime.now() > expiry_date:
             return jsonify({"status": "fail", "reason": "expired"}), 403
 
-        # 2. فحص الأجهزة من ملف الـ HWIDs
-        hwids_db = get_hwids_db()
-        if user_hash not in hwids_db:
-            hwids_db[user_hash] = []
+        # 2. فحص الأجهزة بناءً على الـ limit الخاص بهذا الكود
+        db = get_hwid_file()
+        if user_hash not in db: db[user_hash] = []
         
-        if user_hwid not in hwids_db[user_hash]:
-            if len(hwids_db[user_hash]) < lic_info["limit"]:
-                hwids_db[user_hash].append(user_hwid)
-                save_hwids_db(hwids_db)
+        if user_hwid not in db[user_hash]:
+            # نستخدم الـ limit المذكور في المصفوفة أعلاه
+            if len(db[user_hash]) < found_license["limit"]:
+                db[user_hash].append(user_hwid)
+                with open(DB_FILE, "w") as f: json.dump(db, f, indent=4)
             else:
                 return jsonify({"status": "fail", "reason": "limit_reached"}), 403
 
+        # الاستجابة بالبيانات المخصصة
         return jsonify({
             "status": "ok", 
-            "expires": lic_info["expires"], 
-            "user": lic_info["name"]
+            "expires": found_license["expires"], 
+            "user": found_license["name"]
         }), 200
     
-    # إذا لم يجد الهاش في KEYS_DATA
     return jsonify({"status": "fail", "reason": "invalid"}), 403
 
 if __name__ == "__main__":
