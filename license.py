@@ -8,50 +8,51 @@ app = Flask(__name__)
 
 DB_FILE = "database.json"
 
-# الدالة المسؤولة عن تحميل البيانات من الملف أو إنشائها لأول مرة
 def load_db():
-    if not os.path.exists(DB_FILE):
-        # هنا تضيف كل المفاتيح التي تريدها (أضفت لك 3 أمثلة)
-        initial_db = {
-            # مفتاح 1: 1234
-            "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4": {
-                "name": "Ali Khalaf",
-                "expires": "2026-02-13T23:59:59",
-                "limit": 10000,
-                "hwids": []
-            },
-            # مفتاح 2: 0000
-            "df7e70e5021544af483d1c28ef6169b1d227b3093200722a27e7cc1423405392": {
-                "name": "new-user",
-                "expires": "2026-12-31T23:59:59",
-                "limit": 1000,
-                "hwids": []
-            },
-            # مفتاح 3: TEST-FREE-555
-            "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8": {
-                "name": "Guest User",
-                "expires": "2026-02-28T23:59:59",
-                "limit": 5000, # يسمح لـ 5 أجهزة مختلفة
-                "hwids": []
-            }
+    # الأكواد الجديدة التي تريد فرضها (سيتم مسح بياناتها القديمة وتحديثها)
+    required_keys = {
+        "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4": {
+            "name": "Ali Khalaf (1234)",
+            "expires": "2026-12-31T23:59:59",
+            "limit": 10000,
+            "hwids": [] # تصفير الأجهزة المسجلة سابقاً
+        },
+        "df7e70e5021544af483d1c28ef6169b1d227b3093200722a27e7cc1423405392": {
+            "name": "New User (0000)",
+            "expires": "2026-12-31T23:59:59",
+            "limit": 1000,
+            "hwids": []
+        },
+        "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8": {
+            "name": "Guest User (TEST)",
+            "expires": "2026-12-31T23:59:59",
+            "limit": 5000,
+            "hwids": []
         }
-        save_db(initial_db)
-        return initial_db
-    
-    with open(DB_FILE, "r") as f:
-        try:
-            return json.load(f)
-        except:
-            return {}
+    }
 
-# الدالة المسؤولة عن حفظ البيانات في الملف
+    db = {}
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r") as f:
+            try:
+                db = json.load(f)
+            except:
+                db = {}
+
+    # استبدال بيانات الأكواد القديمة بالبيانات الجديدة (Update/Overwrite)
+    for k, v in required_keys.items():
+        db[k] = v 
+    
+    save_db(db)
+    return db
+
 def save_db(data):
     with open(DB_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
 @app.route("/check", methods=["POST"])
 def check_license():
-    db = load_db()  # قراءة قاعدة البيانات
+    db = load_db()
     data = request.get_json()
     
     if not data:
@@ -60,28 +61,28 @@ def check_license():
     key = data.get("key")
     hwid = data.get("hwid")
     
-    # 1. فحص هل المفتاح موجود أصلاً؟
+    print(f"\n[?] Request: {key}")
+
     if key not in db:
+        print(f"[-] Invalid Key")
         return jsonify({"status": "fail", "reason": "invalid"}), 403
     
     lic = db[key]
     
-    # 2. فحص هل المفتاح منتهي الصلاحية؟
-    expiry_date = datetime.datetime.fromisoformat(lic["expires"])
+    # فحص التاريخ
+    expiry_date = datetime.datetime.strptime(lic["expires"], "%Y-%m-%dT%H:%M:%S")
     if datetime.datetime.now() > expiry_date:
         return jsonify({"status": "fail", "reason": "expired"}), 403
 
-    # 3. فحص بصمة الجهاز (HWID)
+    # فحص الأجهزة
     if hwid not in lic["hwids"]:
-        # إذا كان جهاز جديد، نتحقق هل وصل للحد المسموح (Limit)؟
         if len(lic["hwids"]) < lic["limit"]:
             lic["hwids"].append(hwid)
-            save_db(db)  # حفظ الجهاز الجديد في قاعدة البيانات
+            save_db(db)
+            print(f"[+] Device Registered: {hwid}")
         else:
-            # تم الوصول للحد الأقصى من الأجهزة لهذا المفتاح
             return jsonify({"status": "fail", "reason": "limit_reached"}), 403
 
-    # إذا مر كل شيء بسلام
     return jsonify({
         "status": "ok", 
         "expires": lic["expires"],
@@ -89,5 +90,4 @@ def check_license():
     }), 200
 
 if __name__ == "__main__":
-    # تشغيل السيرفر على جميع الواجهات بالبورت 5000
     app.run(host="0.0.0.0", port=5000)
